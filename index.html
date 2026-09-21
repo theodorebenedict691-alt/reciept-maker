@@ -243,8 +243,11 @@
     display:block;
     max-width:130px;
     max-height:64px;
-    margin:0 0 10px;
+    margin:0 auto 10px;
     object-fit:contain;
+  }
+  .r-header{
+    text-align:center;
   }
   .r-heading{
     font-family:Arial, Helvetica, sans-serif;
@@ -376,10 +379,7 @@
         </div>
       </div>
       <div class="field"><label>Business name</label><input type="text" id="bizName" value="Benny Express Shipping"></div>
-      <div class="grid2">
-        <div class="field"><label>Street address</label><input type="text" id="bizAddress" value="2206 S Bradley Rd"></div>
-        <div class="field"><label>City, state, ZIP</label><input type="text" id="bizCityZip" value="Santa Maria, CA 93455"></div>
-      </div>
+      <div class="field"><label>Street address</label><input type="text" id="bizAddress" value="2206 S Bradley Rd, Santa Maria, CA 93455"></div>
       <div class="field"><label>Location code</label><input type="text" id="bizLocation" value=""></div>
       <div class="grid2">
         <div class="field"><label>Device</label><input type="text" id="device" value="BTC03"></div>
@@ -471,14 +471,15 @@
 
       <div class="receipt-wrap">
         <div id="receipt">
-          <img id="rLogo" class="r-logo" style="display:none;">
-          <div class="r-heading" id="rPkgCount"></div>
-          <div class="r-underline">PLEASE SAVE FOR YOUR RECORDS</div>
+          <div class="r-header">
+            <img id="rLogo" class="r-logo" style="display:none;">
+            <div class="r-heading" id="rPkgCount"></div>
+            <div class="r-underline">PLEASE SAVE FOR YOUR RECORDS</div>
+          </div>
 
           <div class="r-gap"></div>
 
           <div class="r-row"><span class="k">Address:</span><span class="v" id="rBizAddress"></span></div>
-          <div class="r-row"><span class="k"></span><span class="v" id="rBizCityZip"></span></div>
           <div class="r-row"><span class="k">Location:</span><span class="v" id="rLocation"></span></div>
           <div class="r-row"><span class="k">Device:</span><span class="v" id="rDevice"></span></div>
           <div class="r-row"><span class="k">Transaction ID:</span><span class="v" id="rTxnId"></span></div>
@@ -537,7 +538,7 @@
   const $ = id => document.getElementById(id);
 
   const fieldIds = [
-    'bizName','bizAddress','bizCityZip','bizLocation','device','txnId',
+    'bizName','bizAddress','bizLocation','device','txnId',
     'pkgCount','tracking','declaredValue','deliveryDate','itemDesc',
     'recName','recAddress','recPhone','pricingOption',
     'taxLabel','taxAmount','paidMethod','amountPaid',
@@ -647,7 +648,6 @@
 
     $('rBizName').textContent = $('bizName').value;
     $('rBizAddress').textContent = $('bizAddress').value;
-    $('rBizCityZip').textContent = $('bizCityZip').value;
     $('rLocation').textContent = $('bizLocation').value || '—';
     $('rDevice').textContent = $('device').value;
     $('rTxnId').textContent = $('txnId').value;
