@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Drop-off Receipt Maker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1b1b18;
+    --paper:#fdfcf8;
+    --paper-edge:#eae6da;
+    --panel:#15161a;
+    --panel-2:#1e2026;
+    --accent:#ff6a2b;
+    --line:#33353d;
+    --muted:#8b8d97;
+    --good:#3ecf8e;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--panel);
+    color:#e9e9ec;
+    font-family:Arial, Helvetica, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    display:grid;
+    grid-template-columns: 1.15fr 1fr;
+    min-height:100vh;
+  }
+  @media (max-width: 880px){
+    .app{grid-template-columns:1fr;}
+  }
+
+  /* ---------- LEFT: EDITOR ---------- */
+  .editor{
+    padding:32px 32px 80px;
+    overflow-y:auto;
+    background:
+      radial-gradient(1200px 400px at 0% 0%, rgba(255,106,43,0.08), transparent 60%),
+      var(--panel);
+    border-right:1px solid var(--line);
+  }
+  .brandline{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .brandline .tag{
+    color:var(--accent);
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:12.5px;
+    letter-spacing:.02em;
+  }
+  h1{
+    font-size:26px;
+    font-weight:600;
+    margin:0 0 28px;
+    letter-spacing:-0.01em;
+  }
+  fieldset{
+    border:none;
+    padding:0;
+    margin:0 0 26px;
+  }
+  legend{
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:11.5px;
+    color:var(--muted);
+    margin-bottom:10px;
+    padding:0;
+  }
+  .grid2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .field{
+    margin-bottom:10px;
+  }
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:5px;
+  }
+  input[type=text],input[type=number],input[type=date],textarea,select{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:#f1f1f3;
+    padding:9px 11px;
+    border-radius:6px;
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:14px;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  input:focus,textarea:focus,select:focus{
+    border-color:var(--accent);
+  }
+  textarea{resize:vertical;min-height:44px;}
+
+  .logo-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .logo-preview{
+    width:54px;height:54px;
+    border-radius:8px;
+    border:1px dashed var(--line);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+    background:var(--panel-2);
+    flex-shrink:0;
+  }
+  .logo-preview img{width:100%;height:100%;object-fit:contain;}
+  .btn{
+    appearance:none;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:#e9e9ec;
+    padding:9px 14px;
+    border-radius:6px;
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:13px;
+    cursor:pointer;
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  .btn:hover{border-color:var(--accent);}
+  .btn:active{transform:scale(.98);}
+  .btn-ghost-sm{
+    padding:5px 9px;font-size:12px;
+  }
+  .btn-primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#1b1200;
+    font-weight:600;
+  }
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+
+  .items{
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .item-row{
+    display:grid;
+    grid-template-columns:1fr 56px 78px 30px;
+    gap:8px;
+    padding:9px;
+    border-bottom:1px solid var(--line);
+    align-items:center;
+  }
+  .item-row:last-child{border-bottom:none;}
+  .item-row input{padding:7px 9px;font-size:13px;}
+  .del-row{
+    background:none;border:none;color:var(--muted);
+    cursor:pointer;font-size:16px;line-height:1;
+  }
+  .del-row:hover{color:#ff6a6a;}
+  .add-item{
+    width:100%;
+    border:none;
+    background:var(--panel-2);
+    color:var(--muted);
+    padding:9px;
+    cursor:pointer;
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:12px;
+  }
+  .add-item:hover{color:var(--accent);}
+
+  .save-note{
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:4px;
+    min-height:14px;
+  }
+  .save-note.show{color:var(--good);}
+
+  /* ---------- RIGHT: PRECEPTS PREVIEW ---------- */
+  .stage{
+    background:
+      radial-gradient(900px 500px at 100% 0%, rgba(255,106,43,0.10), transparent 60%),
+      var(--panel);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:40px 24px 60px;
+    overflow-y:auto;
+  }
+  .stage-inner{width:100%;max-width:380px;}
+  .stage-actions{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    margin-bottom:20px;
+  }
+
+  .receipt-wrap{
+    background:var(--paper-edge);
+    padding:14px 14px 22px;
+    border-radius:4px;
+    position:relative;
+  }
+  .receipt-wrap::before,
+  .receipt-wrap::after{
+    content:"";
+    position:absolute;
+    left:0;right:0;
+    height:10px;
+    background:
+      radial-gradient(circle 5px at 8px 5px, var(--panel) 5px, transparent 6px) repeat-x;
+    background-size:16px 10px;
+  }
+  .receipt-wrap::before{top:-1px;}
+  .receipt-wrap::after{bottom:-1px;transform:rotate(180deg);}
+
+  #receipt{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:12.3px;
+    line-height:1.35;
+    padding:20px 18px;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);
+  }
+  .r-logo{
+    display:block;
+    max-width:130px;
+    max-height:64px;
+    margin:0 0 10px;
+    object-fit:contain;
+  }
+  .r-heading{
+    font-family:Arial, Helvetica, sans-serif;
+    font-weight:700;
+    font-size:14px;
+    letter-spacing:0;
+  }
+  .r-underline{
+    font-size:11px;
+    font-weight:600;
+    text-decoration:underline;
+    margin:2px 0 0;
+  }
+  .r-gap{height:6px;}
+  .r-rule{
+    border:none;
+    border-top:1px solid #b9b4a5;
+    margin:8px 0;
+  }
+  .r-rule-solid{
+    border:none;
+    border-top:1px solid var(--ink);
+    margin:4px 0 4px;
+    width:55%;
+    margin-left:auto;
+  }
+  .r-row{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    margin:1px 0;
+  }
+  .r-row .k{color:var(--ink);flex-shrink:0;}
+  .r-row .v{text-align:right;word-break:break-word;}
+  .r-rate{
+    text-align:center;
+    font-weight:700;
+    margin:4px 0 8px;
+  }
+  .r-items{margin:2px 0 4px;}
+  .r-item{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    margin:2px 0;
+  }
+  .r-item .name{flex:1;}
+  .r-total-row{
+    font-weight:700;
+    font-size:13.5px;
+  }
+  .r-foot{
+    text-align:center;
+    font-size:11px;
+    color:var(--ink);
+    line-height:1.7;
+  }
+  .r-foot .thanks{
+    font-size:11px;
+    letter-spacing:.02em;
+    color:var(--ink);
+  }
+
+  @page{
+    size: 80mm auto;
+    margin: 0;
+  }
+  @media print{
+    html, body{
+      width:80mm;
+      margin:0;
+      padding:0;
+      background:#fff;
+    }
+    .editor{
+      display:none !important;
+    }
+    .app{
+      display:block !important;
+    }
+    .stage{
+      display:block !important;
+      padding:0;
+      overflow:visible;
+    }
+    .stage-inner{
+      max-width:none;
+    }
+    .stage-actions{
+      display:none !important;
+    }
+    .receipt-wrap{
+      background:none;
+      padding:0;
+    }
+    .receipt-wrap::before, .receipt-wrap::after{
+      display:none;
+    }
+    #receipt{
+      box-shadow:none;
+      width:80mm;
+      max-width:80mm;
+      padding:3mm 4mm;
+      line-height:1.3;
+      background:#fff;
+      margin:0;
+    }
+    .r-logo{max-width:32mm;max-height:16mm;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== EDITOR ===== -->
+  <div class="editor">
+    <div class="brandline"><span class="tag">DROP-OFF RECEIPT MAKER</span></div>
+    <h1>Fill in the shipment</h1>
+
+    <fieldset>
+      <legend>Logo &amp; Business</legend>
+      <div class="logo-row field">
+        <div class="logo-preview" id="logoPreview">—</div>
+        <div>
+          <input type="file" id="logoFile" accept="image/*" style="display:none">
+          <button class="btn btn-ghost-sm" id="logoBtn" type="button">Upload logo</button>
+          <button class="btn btn-ghost-sm" id="logoClear" type="button">Remove</button>
+        </div>
+      </div>
+      <div class="field"><label>Business name</label><input type="text" id="bizName" value="Benny Express Shipping"></div>
+      <div class="grid2">
+        <div class="field"><label>Street address</label><input type="text" id="bizAddress" value="2206 S Bradley Rd"></div>
+        <div class="field"><label>City, state, ZIP</label><input type="text" id="bizCityZip" value="Santa Maria, CA 93455"></div>
+      </div>
+      <div class="field"><label>Location code</label><input type="text" id="bizLocation" value=""></div>
+      <div class="grid2">
+        <div class="field"><label>Device</label><input type="text" id="device" value="BTC03"></div>
+        <div class="field"><label>Transaction ID</label><input type="text" id="txnId" value="75487648974"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Shipment</legend>
+      <div class="grid2">
+        <div class="field"><label>Package (e.g. 1 of 1)</label><input type="text" id="pkgCount" value="1 of 1"></div>
+        <div class="field"><label>Tracking / order #</label><input type="text" id="tracking" value="864230987"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Declared value ($)</label><input type="text" id="declaredValue" value="1"></div>
+        <div class="field"><label>Scheduled delivery date</label><input type="date" id="deliveryDate"></div>
+      </div>
+      <div class="field"><label>Item description</label><input type="text" id="itemDesc" value="Xbox series X"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Recipient</legend>
+      <div class="field"><label>Name</label><input type="text" id="recName" value="Daniel Dominguez"></div>
+      <div class="field"><label>Address</label><input type="text" id="recAddress" value="15726 Victoria Ave, La Puente, CA 91744"></div>
+      <div class="field"><label>Phone</label><input type="text" id="recPhone" value="626-494-7430"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Charges</legend>
+      <div class="field"><label>Pricing option</label>
+        <select id="pricingOption">
+          <option>ONE RATE</option>
+          <option>STANDARD RATE</option>
+          <option>EXPRESS RATE</option>
+          <option>CUSTOM</option>
+        </select>
+      </div>
+
+      <div class="items" id="itemsList"></div>
+      <button class="add-item" id="addItem" type="button">+ add a charge line</button>
+
+      <div class="field" style="margin-top:12px;"><label>Tax label (e.g. CT)</label><input type="text" id="taxLabel" value="CT"></div>
+      <div class="grid2">
+        <div class="field"><label>Tax amount ($)</label><input type="number" id="taxAmount" value="5.00" step="0.01"></div>
+        <div class="field"><label>Paid — method</label><input type="text" id="paidMethod" value="Paid cash"></div>
+      </div>
+      <div class="field"><label>Amount paid ($)</label><input type="number" id="amountPaid" value="45.00" step="0.01"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Receipt Style</legend>
+      <div class="field"><label>Font</label>
+        <select id="fontFamily">
+          <option value="Arial, Helvetica, sans-serif">Arial</option>
+          <option value="'Courier New', Courier, monospace">Courier New (typewriter)</option>
+          <option value="'Times New Roman', Times, serif">Times New Roman</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="Verdana, Geneva, sans-serif">Verdana</option>
+          <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+          <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+        </select>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Font size (px)</label><input type="number" id="fontSize" value="12" min="8" max="20" step="0.5"></div>
+        <div class="field"><label>Text color</label><input type="color" id="textColor" value="#1b1b18" style="padding:3px;height:38px;"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Footer</legend>
+      <div class="field"><label>Terms line</label><input type="text" id="termsLine" value="Terms and conditions apply — see bennyexpress.com/service-guide"></div>
+      <div class="grid2">
+        <div class="field"><label>Website</label><input type="text" id="website" value="bennyexpress.com"></div>
+        <div class="field"><label>Phone</label><input type="text" id="phone" value="1-800-463-3339"></div>
+      </div>
+      <div class="field"><label>Feedback line</label><input type="text" id="feedbackLine" value="Tell us how we're doing & get a discount next time"></div>
+    </fieldset>
+
+    <div class="save-note" id="saveNote">Saved to this device</div>
+  </div>
+
+  <!-- ===== PREVIEW ===== -->
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="stage-actions">
+        <button class="btn btn-primary" id="downloadBtn">Download as image</button>
+        <button class="btn" id="printBtn">Print</button>
+      </div>
+
+      <div class="receipt-wrap">
+        <div id="receipt">
+          <img id="rLogo" class="r-logo" style="display:none;">
+          <div class="r-heading" id="rPkgCount"></div>
+          <div class="r-underline">PLEASE SAVE FOR YOUR RECORDS</div>
+
+          <div class="r-gap"></div>
+
+          <div class="r-row"><span class="k">Address:</span><span class="v" id="rBizAddress"></span></div>
+          <div class="r-row"><span class="k"></span><span class="v" id="rBizCityZip"></span></div>
+          <div class="r-row"><span class="k">Location:</span><span class="v" id="rLocation"></span></div>
+          <div class="r-row"><span class="k">Device:</span><span class="v" id="rDevice"></span></div>
+          <div class="r-row"><span class="k">Transaction ID:</span><span class="v" id="rTxnId"></span></div>
+          <div id="rBizName"></div>
+
+          <div class="r-gap"></div>
+
+          <div id="rTracking"></div>
+          <div id="rDeclaredValue"></div>
+          <div id="rItemDesc"></div>
+          <div id="rRecAddress"></div>
+          <div id="rRecName"></div>
+
+          <div class="r-gap"></div>
+          <div id="rRecPhone"></div>
+
+          <div class="r-gap"></div>
+          <div id="rDeliveryDate"></div>
+
+          <div class="r-gap"></div>
+          <div class="r-row"><span class="k">Pricing option:</span><span class="v" id="rPricingOption"></span></div>
+          <div class="r-rate" id="rRateType"></div>
+
+          <div class="r-items" id="rItems"></div>
+          <div class="r-row"><span class="k">Tax (<span id="rTaxLabel"></span>):</span><span class="v" id="rTaxAmount"></span></div>
+          <hr class="r-rule-solid">
+          <div class="r-row r-total-row"><span>Total Due:</span><span id="rTotal"></span></div>
+          <div class="r-row"><span class="k" id="rPaidMethod"></span><span class="v" id="rAmountPaid"></span></div>
+          <div class="r-row"><span class="k">Change Due:</span><span class="v" id="rChangeDue"></span></div>
+
+          <div class="r-gap"></div>
+
+          <div class="r-foot">
+            <div id="rTerms"></div>
+            <div>Visit us at: <span id="rWebsite"></span></div>
+            <div>Or call <span id="rPhone"></span></div>
+            <div id="rDate" style="margin-top:6px;"></div>
+          </div>
+
+          <hr class="r-rule">
+
+          <div class="r-foot">
+            <div class="thanks">***********WE LISTEN*************</div>
+            <div id="rFeedback"></div>
+            <div class="thanks" style="margin-top:10px;">*******Thank You********</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  const fieldIds = [
+    'bizName','bizAddress','bizCityZip','bizLocation','device','txnId',
+    'pkgCount','tracking','declaredValue','deliveryDate','itemDesc',
+    'recName','recAddress','recPhone','pricingOption',
+    'taxLabel','taxAmount','paidMethod','amountPaid',
+    'termsLine','website','phone','feedbackLine',
+    'fontFamily','fontSize','textColor'
+  ];
+
+  let state = {
+    logo: null,
+    items: [
+      {label:'Shipment subtotal', amount:50.00},
+      {label:'Express shipping subtotal', amount:5.00}
+    ]
+  };
+
+  const STORAGE_KEY = 'dropoff_receipt_draft_v1';
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(parsed.fields){
+          fieldIds.forEach(id=>{
+            if(parsed.fields[id] !== undefined && $(id)) $(id).value = parsed.fields[id];
+          });
+        }
+        if(parsed.logo) state.logo = parsed.logo;
+        if(parsed.items) state.items = parsed.items;
+      }
+    }catch(e){ console.warn('No saved draft or failed to load', e); }
+
+    if(!$('deliveryDate').value){
+      const d = new Date(); d.setDate(d.getDate()+2);
+      $('deliveryDate').value = d.toISOString().slice(0,10);
+    }
+  }
+
+  let saveTimer;
+  function saveState(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>{
+      try{
+        const fields = {};
+        fieldIds.forEach(id=>{ if($(id)) fields[id] = $(id).value; });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({fields, logo:state.logo, items:state.items}));
+        const note = $('saveNote');
+        note.textContent = 'Saved to this device';
+        note.classList.add('show');
+        setTimeout(()=>note.classList.remove('show'), 900);
+      }catch(e){ console.warn('Could not save draft', e); }
+    }, 300);
+  }
+
+  function money(n){
+    n = parseFloat(n); if(isNaN(n)) n = 0;
+    return '$' + n.toFixed(2);
+  }
+
+  function renderItems(){
+    const list = $('itemsList');
+    list.innerHTML = '';
+    state.items.forEach((item, i)=>{
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML = `
+        <input type="text" value="${item.label.replace(/"/g,'&quot;')}" data-idx="${i}" data-field="label" placeholder="Charge label">
+        <span style="color:var(--muted);font-size:12px;text-align:center;">$</span>
+        <input type="number" step="0.01" value="${item.amount}" data-idx="${i}" data-field="amount">
+        <button class="del-row" data-idx="${i}" title="Remove line">×</button>
+      `;
+      list.appendChild(row);
+    });
+
+    list.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('input', e=>{
+        const idx = +e.target.dataset.idx;
+        const field = e.target.dataset.field;
+        state.items[idx][field] = field === 'amount' ? (parseFloat(e.target.value)||0) : e.target.value;
+        render();
+        saveState();
+      });
+    });
+    list.querySelectorAll('.del-row').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        const idx = +e.target.dataset.idx;
+        state.items.splice(idx,1);
+        renderItems();
+        render();
+        saveState();
+      });
+    });
+  }
+
+  $('addItem').addEventListener('click', ()=>{
+    state.items.push({label:'New charge', amount:0});
+    renderItems();
+    render();
+    saveState();
+  });
+
+  function render(){
+    const receiptEl = $('receipt');
+    receiptEl.style.fontFamily = $('fontFamily').value;
+    receiptEl.style.fontSize = $('fontSize').value + 'px';
+    receiptEl.style.color = $('textColor').value;
+
+    $('rBizName').textContent = $('bizName').value;
+    $('rBizAddress').textContent = $('bizAddress').value;
+    $('rBizCityZip').textContent = $('bizCityZip').value;
+    $('rLocation').textContent = $('bizLocation').value || '—';
+    $('rDevice').textContent = $('device').value;
+    $('rTxnId').textContent = $('txnId').value;
+    $('rPkgCount').textContent = 'Drop-off Package Receipt: ' + $('pkgCount').value;
+    $('rTracking').textContent = $('tracking').value + ' (S)';
+    $('rDeclaredValue').textContent = 'Declared Value ' + $('declaredValue').value;
+    $('rItemDesc').textContent = 'Item: ' + $('itemDesc').value;
+    $('rRecName').textContent = 'Receiver name: ' + $('recName').value;
+    $('rRecAddress').textContent = 'Recipient Address: ' + $('recAddress').value;
+    $('rRecPhone').textContent = 'Recipient Number: ' + $('recPhone').value;
+
+    const dRaw = $('deliveryDate').value;
+    $('rDeliveryDate').textContent = 'Schedule Delivery Date: ' + (dRaw ? new Date(dRaw+'T00:00:00').toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'}) : '');
+    $('rPricingOption').textContent = $('pricingOption').value;
+    $('rRateType').textContent = 'STANDARD RATE';
+
+    let subtotal = 0;
+    const itemsEl = $('rItems');
+    itemsEl.innerHTML = '';
+    state.items.forEach(item=>{
+      subtotal += (parseFloat(item.amount)||0);
+      const row = document.createElement('div');
+      row.className = 'r-item';
+      row.innerHTML = `<span class="name">${item.label}</span><span>${money(item.amount)}</span>`;
+      itemsEl.appendChild(row);
+    });
+
+    const tax = parseFloat($('taxAmount').value) || 0;
+    const total = subtotal + tax;
+    const paid = parseFloat($('amountPaid').value) || 0;
+    const change = paid - total;
+
+    $('rTaxLabel').textContent = $('taxLabel').value;
+    $('rTaxAmount').textContent = money(tax);
+    $('rTotal').textContent = money(total);
+    $('rPaidMethod').textContent = $('paidMethod').value + ':';
+    $('rAmountPaid').textContent = money(paid);
+    $('rChangeDue').textContent = money(change);
+
+    $('rTerms').textContent = $('termsLine').value;
+    $('rWebsite').textContent = $('website').value;
+    $('rPhone').textContent = $('phone').value;
+    $('rFeedback').textContent = $('feedbackLine').value;
+    $('rDate').textContent = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+    const rLogo = $('rLogo');
+    if(state.logo){
+      rLogo.src = state.logo;
+      rLogo.style.display = 'block';
+    } else {
+      rLogo.style.display = 'none';
+    }
+
+    const preview = $('logoPreview');
+    preview.innerHTML = state.logo ? `<img src="${state.logo}">` : '—';
+  }
+
+  fieldIds.forEach(id=>{
+    const el = $(id);
+    if(el) el.addEventListener('input', ()=>{ render(); saveState(); });
+  });
+
+  $('logoBtn').addEventListener('click', ()=> $('logoFile').click());
+  $('logoFile').addEventListener('change', e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      state.logo = ev.target.result;
+      render();
+      saveState();
+    };
+    reader.readAsDataURL(file);
+  });
+  $('logoClear').addEventListener('click', ()=>{
+    state.logo = null;
+    $('logoFile').value = '';
+    render();
+    saveState();
+  });
+
+  $('printBtn').addEventListener('click', ()=> window.print());
+
+  $('downloadBtn').addEventListener('click', ()=>{
+    const receipt = $('receipt');
+    html2canvas(receipt, {backgroundColor:'#fdfcf8', scale:2}).then(canvas=>{
+      const link = document.createElement('a');
+      link.download = 'receipt-' + ($('txnId').value || Date.now()) + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }).catch(err=>{
+      alert('Could not generate the image. Try Print instead.');
+      console.error(err);
+    });
+  });
+
+  loadState();
+  renderItems();
+  render();
+})();
+</script>
+
+</body>
+</html>
