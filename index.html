@@ -211,24 +211,46 @@
     margin-bottom:20px;
   }
 
+  .table-stage{
+    padding:36px 28px;
+    border-radius:14px;
+    transition:background .2s ease;
+  }
+  .table-stage.tbl-none{
+    padding:0;
+    background:none;
+  }
+  .table-stage.tbl-oak{
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 140px),
+      linear-gradient(100deg, #c98a4b, #a9682f 35%, #c08a4d 60%, #96612c 85%, #b87c40);
+  }
+  .table-stage.tbl-walnut{
+    background:
+      repeating-linear-gradient(92deg, rgba(0,0,0,0.12) 0 3px, transparent 3px 110px),
+      linear-gradient(100deg, #4a2f22, #3a2317 30%, #513322 55%, #331f14 80%, #45291b);
+  }
+  .table-stage.tbl-marble{
+    background:
+      radial-gradient(circle at 20% 30%, rgba(150,150,160,0.35) 0, transparent 35%),
+      radial-gradient(circle at 75% 60%, rgba(120,120,130,0.3) 0, transparent 40%),
+      linear-gradient(135deg, #f2f1ee, #e5e3de 40%, #eeece8 70%, #dedcd6);
+  }
+  .table-stage.tbl-linen{
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 4px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 4px),
+      linear-gradient(135deg, #cfc8b8, #bdb5a2);
+  }
+  .table-stage.tbl-slate{
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255,255,255,0.05) 0, transparent 40%),
+      linear-gradient(120deg, #3b3f45, #2a2d31 45%, #34373c 75%, #24262a);
+  }
+
   .receipt-wrap{
-    background:var(--paper-edge);
-    padding:14px 14px 22px;
-    border-radius:4px;
     position:relative;
   }
-  .receipt-wrap::before,
-  .receipt-wrap::after{
-    content:"";
-    position:absolute;
-    left:0;right:0;
-    height:10px;
-    background:
-      radial-gradient(circle 5px at 8px 5px, var(--panel) 5px, transparent 6px) repeat-x;
-    background-size:16px 10px;
-  }
-  .receipt-wrap::before{top:-1px;}
-  .receipt-wrap::after{bottom:-1px;transform:rotate(180deg);}
 
   #receipt{
     background:var(--paper);
@@ -279,6 +301,13 @@
     justify-content:space-between;
     gap:10px;
     margin:1px 0;
+  }
+  .r-row.r-tight{
+    justify-content:flex-start;
+    gap:6px;
+  }
+  .r-row.r-tight .v{
+    text-align:left;
   }
   .r-row .k{color:var(--ink);flex-shrink:0;}
   .r-row .v{text-align:right;word-break:break-word;}
@@ -342,9 +371,6 @@
     .receipt-wrap{
       background:none;
       padding:0;
-    }
-    .receipt-wrap::before, .receipt-wrap::after{
-      display:none;
     }
     #receipt{
       box-shadow:none;
@@ -469,6 +495,19 @@
         <button class="btn" id="printBtn">Print</button>
       </div>
 
+      <div class="table-picker" id="tablePicker" style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-ghost-sm tbl-opt" data-tbl="none" type="button">No background</button>
+        <button class="btn btn-ghost-sm tbl-opt" data-tbl="oak" type="button">Oak table</button>
+        <button class="btn btn-ghost-sm tbl-opt" data-tbl="walnut" type="button">Walnut table</button>
+        <button class="btn btn-ghost-sm tbl-opt" data-tbl="marble" type="button">Marble</button>
+        <button class="btn btn-ghost-sm tbl-opt" data-tbl="linen" type="button">Linen</button>
+        <button class="btn btn-ghost-sm tbl-opt" data-tbl="slate" type="button">Slate</button>
+        <span id="customTableSwatches" style="display:flex;gap:8px;flex-wrap:wrap;"></span>
+        <input type="file" id="tableImageFile" accept="image/*" multiple style="display:none">
+        <button class="btn btn-ghost-sm" id="addTableImageBtn" type="button">+ Add your own</button>
+      </div>
+
+      <div class="table-stage tbl-none" id="tableStage">
       <div class="receipt-wrap">
         <div id="receipt">
           <div class="r-header">
@@ -479,7 +518,7 @@
 
           <div class="r-gap"></div>
 
-          <div class="r-row"><span class="k">Address:</span><span class="v" id="rBizAddress"></span></div>
+          <div class="r-row r-tight"><span class="k">Address:</span><span class="v" id="rBizAddress"></span></div>
           <div class="r-row"><span class="k">Location:</span><span class="v" id="rLocation"></span></div>
           <div class="r-row"><span class="k">Device:</span><span class="v" id="rDevice"></span></div>
           <div class="r-row"><span class="k">Transaction ID:</span><span class="v" id="rTxnId"></span></div>
@@ -528,6 +567,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </div>
 
@@ -548,6 +588,7 @@
 
   let state = {
     logo: null,
+    customTables: [],
     items: [
       {label:'Shipment subtotal', amount:50.00},
       {label:'Express shipping subtotal', amount:5.00}
@@ -568,6 +609,11 @@
         }
         if(parsed.logo) state.logo = parsed.logo;
         if(parsed.items) state.items = parsed.items;
+        if(parsed.customTables) state.customTables = parsed.customTables;
+        renderCustomSwatches();
+        if(parsed.table){
+          applyTableSelection(parsed.table);
+        }
       }
     }catch(e){ console.warn('No saved draft or failed to load', e); }
 
@@ -584,7 +630,7 @@
       try{
         const fields = {};
         fieldIds.forEach(id=>{ if($(id)) fields[id] = $(id).value; });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({fields, logo:state.logo, items:state.items}));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({fields, logo:state.logo, items:state.items, table:currentTable, customTables:state.customTables}));
         const note = $('saveNote');
         note.textContent = 'Saved to this device';
         note.classList.add('show');
@@ -731,9 +777,89 @@
 
   $('printBtn').addEventListener('click', ()=> window.print());
 
+  let currentTable = 'none';
+
+  function applyTableSelection(sel){
+    currentTable = sel;
+    const stage = $('tableStage');
+    if(typeof sel === 'string' && sel.startsWith('custom:')){
+      const idx = parseInt(sel.split(':')[1], 10);
+      const img = state.customTables[idx];
+      stage.className = 'table-stage tbl-none';
+      if(img){
+        stage.style.backgroundImage = `url(${img})`;
+        stage.style.backgroundSize = 'cover';
+        stage.style.backgroundPosition = 'center';
+        stage.style.padding = '36px 28px';
+      }
+    } else {
+      stage.style.backgroundImage = '';
+      stage.className = 'table-stage tbl-' + sel;
+    }
+  }
+
+  document.querySelectorAll('.tbl-opt').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      applyTableSelection(btn.dataset.tbl);
+      saveState();
+    });
+  });
+
+  function renderCustomSwatches(){
+    const wrap = $('customTableSwatches');
+    wrap.innerHTML = '';
+    state.customTables.forEach((img, i)=>{
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.title = 'Use this table';
+      btn.style.cssText = `width:34px;height:34px;border-radius:6px;border:1px solid var(--line);background-image:url(${img});background-size:cover;background-position:center;cursor:pointer;position:relative;`;
+      btn.addEventListener('click', ()=>{
+        applyTableSelection('custom:' + i);
+        saveState();
+      });
+
+      const del = document.createElement('span');
+      del.textContent = '×';
+      del.title = 'Remove this table image';
+      del.style.cssText = 'position:absolute;top:-6px;right:-6px;background:var(--panel-2);border:1px solid var(--line);border-radius:50%;width:16px;height:16px;line-height:14px;text-align:center;font-size:11px;color:var(--muted);cursor:pointer;';
+      del.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        state.customTables.splice(i,1);
+        if(currentTable === 'custom:' + i){ applyTableSelection('none'); }
+        renderCustomSwatches();
+        saveState();
+      });
+      btn.style.position = 'relative';
+      btn.appendChild(del);
+      wrap.appendChild(btn);
+    });
+  }
+
+  $('addTableImageBtn').addEventListener('click', ()=> $('tableImageFile').click());
+  $('tableImageFile').addEventListener('change', e=>{
+    const files = Array.from(e.target.files || []);
+    if(!files.length) return;
+    let remaining = files.length;
+    files.forEach(file=>{
+      const reader = new FileReader();
+      reader.onload = ev=>{
+        state.customTables.push(ev.target.result);
+        remaining--;
+        if(remaining === 0){
+          renderCustomSwatches();
+          applyTableSelection('custom:' + (state.customTables.length - 1));
+          saveState();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  });
+
   $('downloadBtn').addEventListener('click', ()=>{
-    const receipt = $('receipt');
-    html2canvas(receipt, {backgroundColor:'#fdfcf8', scale:2}).then(canvas=>{
+    const target = currentTable === 'none' ? $('receipt') : $('tableStage');
+    const bg = currentTable === 'none' ? '#fdfcf8' : null;
+    html2canvas(target, {backgroundColor:bg, scale:2, useCORS:true}).then(canvas=>{
       const link = document.createElement('a');
       link.download = 'receipt-' + ($('txnId').value || Date.now()) + '.png';
       link.href = canvas.toDataURL('image/png');
